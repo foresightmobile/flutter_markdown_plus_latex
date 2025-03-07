@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main 
+      - main
   pull_request:
     branches:
       - main
@@ -15,23 +15,23 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
 
-    steps:  
+    steps:
 
       - name: Checkout
         uses: actions/checkout@v4.1.1
 
       - name: Setup Dart SDK
         uses: dart-lang/setup-dart@v1.6.2
-        with: 
+        with:
           sdk: stable
 
       - name: Flutter Test
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.27.1'
           channel: 'stable'
       - run: flutter test --coverage
-          
+
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2.2.3
             
