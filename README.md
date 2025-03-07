@@ -32,7 +32,7 @@ where \(f(x)\) is the function to be expanded, \(a\) is the expansion point, \(f
 In particular, when \(a=0\), this expansion is called the Maclaurin series.
 ```
 
-![Example](https://github.com/xushengs/flutter_markdown_plus_latex/raw/main/doc/img/demo.jpg)
+![Example](https://github.com/foresightmobile/flutter_markdown_plus_latex/raw/main/doc/img/demo.jpg)
 
 ## Getting Started
 
