@@ -1,4 +1,4 @@
-library flutter_markdown_latex;
+library;
 
 export 'src/latex_block_syntax.dart';
 export 'src/latex_element_builder.dart';

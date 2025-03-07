@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0
+
+- Changed to use the `flutter_markdown_plus` package for rendering LaTeX.
+
 ## 0.3.4
 
 - Updated inline latex rules

@@ -1,8 +1,8 @@
-# Flutter Markdown Latex
+# Flutter Markdown PLus Latex
 
-[![Coverage Status](https://coveralls.io/repos/github/xushengs/flutter_markdown_latex/badge.svg?branch=main)](https://coveralls.io/github/xushengs/flutter_markdown_latex?branch=main) [![Pub Version](https://img.shields.io/pub/v/flutter_markdown_latex)](https://pub.dev/packages/flutter_markdown_latex)
+[![Coverage Status](https://coveralls.io/repos/github/xushengs/flutter_markdown_plus_latex/badge.svg?branch=main)](https://coveralls.io/github/xushengs/flutter_markdown_plus_latex?branch=main) [![Pub Version](https://img.shields.io/pub/v/flutter_markdown_plus_latex)](https://pub.dev/packages/flutter_markdown_plus_latex)
 
-This extension is created to enhance the functionality of the [flutter_markdown](https://pub.dev/packages/flutter_markdown) package by adding support for rendering LaTeX in markdown. The rendering of LaTeX is achieved through the utilization of the [flutter_math_fork](https://pub.dev/packages/flutter_math_fork) package.
+This extension is created to enhance the functionality of the [flutter_markdown_plus](https://pub.dev/packages/flutter_markdown_plus) package by adding support for rendering LaTeX in markdown. The rendering of LaTeX is achieved through the utilization of the [flutter_math_fork](https://pub.dev/packages/flutter_math_fork) package.
 
 ## Rendering Samples
 
@@ -32,18 +32,18 @@ where \(f(x)\) is the function to be expanded, \(a\) is the expansion point, \(f
 In particular, when \(a=0\), this expansion is called the Maclaurin series.
 ```
 
-![Example](https://github.com/xushengs/flutter_markdown_latex/raw/main/doc/img/demo.jpg)
+![Example](https://github.com/xushengs/flutter_markdown_plus_latex/raw/main/doc/img/demo.jpg)
 
 ## Getting Started
 
 ### Add dependency
 
-Add `flutter_markdown_latex` to your `pubspec.yaml` dependencies.
+Add `flutter_markdown_plus_latex` to your `pubspec.yaml` dependencies.
 
 ### Import it
 
 ```dart
-import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
+import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 ```
 
 ### Render it
