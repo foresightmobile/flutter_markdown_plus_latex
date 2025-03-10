@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Updated README.md.
+
 ## 1.0.0
 
 - Changed to use the `flutter_markdown_plus` package for rendering LaTeX.
