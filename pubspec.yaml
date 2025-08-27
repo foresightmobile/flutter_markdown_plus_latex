@@ -1,6 +1,6 @@
 name: flutter_markdown_plus_latex
 description: A extension to render LaTeX in markdown for package flutter_markdown_plus.
-version: 1.0.1
+version: 1.0.2
 homepage: https://github.com/foresightmobile/flutter_markdown_plus_latex
 
 environment:
@@ -10,9 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_markdown_plus: ^1.0.2
-  flutter_math_fork: ^0.7.3
-  markdown: ^7.1.1
+
+  flutter_markdown_plus: ^1.0.3
+#  flutter_markdown_plus:
+#    path: ../flutter_markdown_plus
+
+  flutter_math_fork: ^0.7.4
+  markdown: ^7.3.0
 
 dev_dependencies:
   flutter_test:
