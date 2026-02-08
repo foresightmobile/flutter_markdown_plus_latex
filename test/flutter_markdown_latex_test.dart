@@ -114,6 +114,18 @@ OpenAI block latex:
 
 \\[ c = \\pm\\sqrt{a^2 + b^2} \\]
 ''',
+    'OpenAI block latex multiline brackets': r'''
+OpenAI block latex (multiline brackets):
+
+\[
+\begin{aligned}
+\text{Class A front-end} &= 0.025 \times 50{,}000 = 1{,}250 \\
+\text{Class A 12b-1 (4 yrs)} &= 0.0025 \times 50{,}000 \times 4 = 500 \\
+\text{Class A total} &= 1{,}250 + 500 = 1{,}750 \\
+\text{Class C 12b-1 (4 yrs)} &= 0.01 \times 50{,}000 \times 4 = 2{,}000
+\end{aligned}
+\]
+''',
 };
 
 void main() {
