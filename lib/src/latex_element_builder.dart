@@ -37,14 +37,39 @@ class LatexElementBuilder extends MarkdownElementBuilder {
         mathStyle = MathStyle.text;
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.antiAlias,
-      child: Math.tex(
-        text,
-        textStyle: textStyle,
-        mathStyle: mathStyle,
-        textScaleFactor: textScaleFactor,
+    // Block math: scrollable container is appropriate.
+    if (mathStyle == MathStyle.display) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.antiAlias,
+        child: Math.tex(
+          text,
+          textStyle: textStyle,
+          mathStyle: mathStyle,
+          textScaleFactor: textScaleFactor,
+        ),
+      );
+    }
+
+    // Inline math: return Text.rich so flutter_markdown_plus's
+    // _mergeInlineChildren can recognise it as a text widget and merge it
+    // with adjacent text spans into a single RichText. Returning an opaque
+    // widget (e.g. SingleChildScrollView) breaks the merge chain and causes
+    // each surrounding text segment to become a full-width RichText, which
+    // produces unwanted line breaks around inline math expressions.
+    return Text.rich(
+      TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Math.tex(
+              text,
+              textStyle: textStyle,
+              mathStyle: mathStyle,
+              textScaleFactor: textScaleFactor,
+            ),
+          ),
+        ],
       ),
     );
   }
