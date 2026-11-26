@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.5
+
+- Updated flutter_markdown_plus dependency to ^1.0.5
+
+## 1.0.4
+
+- Updated flutter_markdown_plus dependency to ^1.0.3
+
+## 1.0.3
+
+- Updated flutter_markdown_plus dependency
+
+## 1.0.2
+
+- Updated flutter_markdown_plus dependency
+
 ## 1.0.1
 
 - Updated README.md.
