@@ -321,7 +321,7 @@ void main() {
         if (current is LocalFileComparator) {
           goldenFileComparator = GoldenDiffComparator(
             Uri.parse('${current.basedir}test.dart'),
-            tolerance: 0.01,
+            tolerance: 0.001,
           );
         }
       }
