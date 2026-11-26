@@ -2,7 +2,8 @@
 # so anything `.gitignore` excludes is not excluded from the archive. Keep the
 # two lists in sync.
 
-# Local build, lockfile and test output (root only, matching .gitignore anchoring)
+# Local build, lockfile and test output (root-anchored so subpackage paths
+# like `lib/build/` are never accidentally excluded)
 /pubspec.lock
 /build/
 /coverage/
@@ -10,9 +11,10 @@
 /test/failures/
 
 # Local-only planning, agent and IDE files. Not part of the package.
-# Anchoring mirrors .gitignore exactly. A leading slash matters: `docs/` on its
-# own would also drop `lib/docs/`, `test/docs/` and `example/docs/`, and `build/`
-# would drop `lib/build/`. Only root-level copies are local-only.
+# Root-anchored with a leading slash (even where `.gitignore` is unanchored):
+# `docs/` on its own would also drop `lib/docs/`, `test/docs/` and
+# `example/docs/`, and `build/` would drop `lib/build/`. Only root-level copies
+# are local-only.
 /AGENTS.md
 /CLAUDE.md
 /GLOSSARY.md
