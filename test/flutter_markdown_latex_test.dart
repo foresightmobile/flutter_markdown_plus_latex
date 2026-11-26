@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:flutter_math_fork/tex.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as md;
 
@@ -322,7 +321,7 @@ void main() {
         if (current is LocalFileComparator) {
           goldenFileComparator = GoldenDiffComparator(
             Uri.parse('${current.basedir}test.dart'),
-            tolerance: 0.05,
+            tolerance: 0.01,
           );
         }
       }
@@ -331,23 +330,39 @@ void main() {
 
     _snapshotCases.forEach((key, testCase) {
       testWidgets(key, (tester) async {
+        final GlobalKey goldenKey = GlobalKey();
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
               backgroundColor: Colors.white,
-              body: MarkdownBody(
-                selectable: true,
-                data: testCase.markdown,
-                builders: {'latex': LatexElementBuilder()},
-                extensionSet: md.ExtensionSet(
-                  [LatexBlockSyntax()],
-                  [LatexInlineSyntax()],
-                ),
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(
-                    fontSize: 16,
-                    fontFamily: 'FlutterTest',
-                    height: 1,
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: RepaintBoundary(
+                  key: goldenKey,
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: MarkdownBody(
+                          selectable: true,
+                          data: testCase.markdown,
+                          builders: {'latex': LatexElementBuilder()},
+                          extensionSet: md.ExtensionSet(
+                            [LatexBlockSyntax()],
+                            [LatexInlineSyntax()],
+                          ),
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(
+                              fontSize: 16,
+                              fontFamily: 'FlutterTest',
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -373,10 +388,15 @@ void main() {
         }
         if (!testCase.expectParseError) {
           expect(
-            mathWidgets.map((Math m) => m.ast!.greenRoot.encodeTeX()).toList(),
+            mathWidgets
+                .map((Math m) => m.ast!.greenRoot.toJson().toString())
+                .toList(),
             equals(
               testCase.expectedTex
-                  .map((String tex) => Math.tex(tex).ast!.greenRoot.encodeTeX())
+                  .map(
+                    (String tex) =>
+                        Math.tex(tex).ast!.greenRoot.toJson().toString(),
+                  )
                   .toList(),
             ),
           );
@@ -392,7 +412,7 @@ void main() {
 
         if (kGoldensEnabled) {
           await expectLater(
-            find.byType(MarkdownBody),
+            find.byKey(goldenKey),
             matchesGoldenFile('goldens/$key.png'),
           );
         }
