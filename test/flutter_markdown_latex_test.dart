@@ -1,86 +1,260 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:markdown/markdown.dart' as md;
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter_math_fork/tex.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:markdown/markdown.dart' as md;
 
 import 'golden_diff_comparator.dart';
 
-final snapshots = {
-  'readme example': 'latex: \$c = \\pm\\sqrt{a^2 + b^2}\$',
-  'inline latex': '''
+/// Whether golden pixel comparisons should run.
+///
+/// Pass `--dart-define=GOLDENS=true` to compare against the committed golden
+/// reference images. Anywhere else, widget rendering still runs while pixel
+/// comparisons are skipped.
+const bool kGoldensEnabled = bool.fromEnvironment('GOLDENS');
+
+Future<void> _loadPackageFonts() async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  final String manifestJson = await rootBundle.loadString('FontManifest.json');
+  final List<dynamic> fontManifest = json.decode(manifestJson) as List<dynamic>;
+  for (final dynamic entry in fontManifest) {
+    final Map<String, dynamic> font = entry as Map<String, dynamic>;
+    final String family = font['family'] as String? ?? '';
+    final List<dynamic> fonts = font['fonts'] as List<dynamic>? ?? <dynamic>[];
+    String derivedFamily = family;
+    if (!family.startsWith('packages/')) {
+      for (final dynamic f in fonts) {
+        final String? asset = (f as Map<String, dynamic>)['asset'] as String?;
+        if (asset != null && asset.startsWith('packages/')) {
+          final String packageName = asset.split('/')[1];
+          derivedFamily = 'packages/$packageName/$family';
+          break;
+        }
+      }
+    }
+    final FontLoader loader = FontLoader(derivedFamily);
+    for (final dynamic f in fonts) {
+      final String asset = (f as Map<String, dynamic>)['asset'] as String;
+      loader.addFont(rootBundle.load(asset));
+    }
+    await loader.load();
+  }
+}
+
+class _LatexSnapshotCase {
+  const _LatexSnapshotCase({
+    required this.markdown,
+    required this.mathStyles,
+    this.expectedTex = const <String>[],
+    this.expectParseError = false,
+    this.expectedTexts = const <String>[],
+  });
+
+  final String markdown;
+  final List<MathStyle> mathStyles;
+  final List<String> expectedTex;
+  final bool expectParseError;
+  final List<String> expectedTexts;
+}
+
+const Map<String, _LatexSnapshotCase> _snapshotCases = {
+  'readme example': _LatexSnapshotCase(
+    markdown: 'latex: \$c = \\pm\\sqrt{a^2 + b^2}\$',
+    mathStyles: [MathStyle.text],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
+    expectedTexts: ['latex: '],
+  ),
+  'inline latex': _LatexSnapshotCase(
+    markdown: '''
 This is inline latex: \$c = \\pm\\sqrt{a^2 + b^2}\$
 ''',
-  'block latex': '''
+    mathStyles: [MathStyle.text],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
+    expectedTexts: ['This is inline latex: '],
+  ),
+  'block latex': _LatexSnapshotCase(
+    markdown: '''
 This is block level latex:
 
 \$\$
 c = \\pm\\sqrt{a^2 + b^2}
 \$\$
 ''',
-  'inline latex more \$': '''
+    mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
+    expectedTexts: ['This is block level latex:'],
+  ),
+  'inline latex more \$': _LatexSnapshotCase(
+    markdown: '''
 This is inline latex with displayMode: \$\$c = \\pm\\sqrt{a^2 + b^2}\$\$
 ''',
-  'inline latex 3 \$': '''
+    mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
+    expectedTexts: ['This is inline latex with displayMode: '],
+  ),
+  'inline latex 3 \$': _LatexSnapshotCase(
+    markdown: '''
 This is not inline latex: \$\$\$c = \\pm\\sqrt{a^2 + b^2}\$\$\$
 ''',
-//   'block latex more \$': '''
-// This is not latex:
+    mathStyles: [MathStyle.display],
+    expectParseError: true,
+    expectedTexts: [
+      'This is not inline latex: ',
+      "Parser Error: Can't use function '\$' in math mode",
+    ],
+  ),
+  //   'block latex more \$': '''
+  // This is not latex:
 
-// \$\$\$
-// c = \\pm\\sqrt{a^2 + b^2}
-// \$\$\$
-// ''',
-//   'block latex 1 \$': '''
-// This is block level latex:
+  // \$\$\$
+  // c = \\pm\\sqrt{a^2 + b^2}
+  // \$\$\$
+  // ''',
+  //   'block latex 1 \$': '''
+  // This is block level latex:
 
-// \$
-// c = \\pm\\sqrt{a^2 + b^2}
-// \$
-// ''',
-  'not latex': 'not latex \$300 \$400',
-  'not latex at beginning': '\$300 \$400 not latex',
-  'not latex at end': 'not latex 300\$ 400\$',
-  'block latex with \$ inside': '''
+  // \$
+  // c = \\pm\\sqrt{a^2 + b^2}
+  // \$
+  // ''',
+  'not latex': _LatexSnapshotCase(
+    markdown: 'not latex \$300 \$400',
+    mathStyles: [],
+    expectedTexts: ['not latex \$300 \$400'],
+  ),
+  'not latex at beginning': _LatexSnapshotCase(
+    markdown: '\$300 \$400 not latex',
+    mathStyles: [],
+    expectedTexts: ['\$300 \$400 not latex'],
+  ),
+  // Existing parser behaviour locked in by this test: the trailing `$ 400$`
+  // substring is matched as inline math while `'not latex 300'` stays plain text.
+  'not latex at end': _LatexSnapshotCase(
+    markdown: 'not latex 300\$ 400\$',
+    mathStyles: [MathStyle.text],
+    expectedTex: [' 400'],
+    expectedTexts: ['not latex 300'],
+  ),
+  'block latex with \$ inside': _LatexSnapshotCase(
+    markdown: '''
 \$\$
 \\colorbox{aqua}{\$
 \\frac{b}{2}\\sqrt{a^2-\\frac{b^2}{4}}
 a\$}
 \$\$
 ''',
-  'inline latex with \$ inside':
-      'this is inline latex: \$a\\raisebox{0.25em}{\$b\$}c\$',
-  'inline latex with a question mark after': 'this is inline latex: \$x\$?',
-  'inline latex with an exclamation mark after': 'this is inline latex: \$x\$!',
-  'inline latex with a period after': 'this is inline latex: \$x\$.',
-  'inline latex with a comma after': 'this is inline latex: \$x\$,',
-  'inline latex with a colon after': 'this is inline latex: \$x\$:',
-  'inline latex \$\$...\$':
-      'this is not latex: \$\$a\\raisebox{0.25em}{\$b\$}c\$',
-  'inline latex \$...\$\$':
-      'this is not latex: \$a\\raisebox{0.25em}{\$b\$}c\$\$',
-  'slash \$': 'must include space between latex and end delimiter: \$ \\\$ \$',
-  'block slash \$': '''
+    mathStyles: [MathStyle.display],
+    expectedTex: [
+      '''
+\\colorbox{aqua}{\$
+\\frac{b}{2}\\sqrt{a^2-\\frac{b^2}{4}}
+a\$}''',
+    ],
+  ),
+  'inline latex with \$ inside': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$a\\raisebox{0.25em}{\$b\$}c\$',
+    mathStyles: [MathStyle.text],
+    expectedTex: [r'a\raisebox{0.25em}{$b$}c'],
+    expectedTexts: ['this is inline latex: '],
+  ),
+  'inline latex with a question mark after': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$x\$?',
+    mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
+    expectedTexts: ['this is inline latex: ', '?'],
+  ),
+  'inline latex with an exclamation mark after': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$x\$!',
+    mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
+    expectedTexts: ['this is inline latex: ', '!'],
+  ),
+  'inline latex with a period after': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$x\$.',
+    mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
+    expectedTexts: ['this is inline latex: ', '.'],
+  ),
+  'inline latex with a comma after': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$x\$,',
+    mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
+    expectedTexts: ['this is inline latex: ', ','],
+  ),
+  'inline latex with a colon after': _LatexSnapshotCase(
+    markdown: 'this is inline latex: \$x\$:',
+    mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
+    expectedTexts: ['this is inline latex: ', ':'],
+  ),
+  'inline latex \$\$...\$': _LatexSnapshotCase(
+    markdown: 'this is not latex: \$\$a\\raisebox{0.25em}{\$b\$}c\$',
+    mathStyles: [MathStyle.text],
+    expectParseError: true,
+    expectedTexts: [
+      'this is not latex: ',
+      "Parser Error: Can't use function '\$' in math mode",
+    ],
+  ),
+  'inline latex \$...\$\$': _LatexSnapshotCase(
+    markdown: 'this is not latex: \$a\\raisebox{0.25em}{\$b\$}c\$\$',
+    mathStyles: [MathStyle.text],
+    expectParseError: true,
+    expectedTexts: [
+      'this is not latex: ',
+      "Parser Error: Can't use function '\$' in math mode",
+    ],
+  ),
+  'slash \$': _LatexSnapshotCase(
+    markdown: 'must include space between latex and end delimiter: \$ \\\$ \$',
+    mathStyles: [MathStyle.text],
+    expectedTex: [r' \$ '],
+    expectedTexts: ['must include space between latex and end delimiter: '],
+  ),
+  'block slash \$': _LatexSnapshotCase(
+    markdown: '''
 this is block latex:
 
 \$\$
 \\\$\\\$
 \$\$
 ''',
-  'inline latex with newline': '''
+    mathStyles: [MathStyle.display],
+    expectedTex: [r'\$\$'],
+    expectedTexts: ['this is block latex:'],
+  ),
+  'inline latex with newline': _LatexSnapshotCase(
+    markdown: '''
 this is not latex: \$
 c = \\pm\\sqrt{a^2 + b^2}
 \$
 ''',
-  'multiple inline latex \$': '''
+    mathStyles: [],
+    expectedTexts: ['this is not latex: \$ c = \\pm\\sqrt{a^2 + b^2}'],
+  ),
+  'multiple inline latex \$': _LatexSnapshotCase(
+    markdown: '''
 this is latex: **pi:** \$\\pi\$ **theta:** \$\\theta\$
 ''',
-  'multiple inline latex \$\$': '''
+    mathStyles: [MathStyle.text, MathStyle.text],
+    expectedTex: [r'\pi', r'\theta'],
+    expectedTexts: ['this is latex: pi: ', ' theta: '],
+  ),
+  'multiple inline latex \$\$': _LatexSnapshotCase(
+    markdown: '''
 this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 ''',
-  'multiple block latex \$': '''
+    mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
+    expectedTexts: ['this is latex: pi: ', ' theta: '],
+  ),
+  'multiple block latex \$': _LatexSnapshotCase(
+    markdown: '''
 # pi:
 
 \$
@@ -93,7 +267,12 @@ this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 \\theta
 \$
 ''',
-  'multiple block latex \$\$': '''
+    mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
+    expectedTexts: ['pi:', 'theta:'],
+  ),
+  'multiple block latex \$\$': _LatexSnapshotCase(
+    markdown: '''
 # pi:
 
 \$\$
@@ -106,60 +285,117 @@ this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 \\theta
 \$\$
 ''',
-  'OpenAI inline latex': '''
+    mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
+    expectedTexts: ['pi:', 'theta:'],
+  ),
+  'OpenAI inline latex': _LatexSnapshotCase(
+    markdown: '''
 OpenAI inline latex \\( f(x) = \\sum_{i=0}^{n} \\frac{a_i}{1+x} \\)
 ''',
-  'OpenAI block latex': '''
+    mathStyles: [MathStyle.text],
+    expectedTex: [r' f(x) = \sum_{i=0}^{n} \frac{a_i}{1+x} '],
+    expectedTexts: ['OpenAI inline latex '],
+  ),
+  'OpenAI block latex': _LatexSnapshotCase(
+    markdown: '''
 OpenAI block latex:
 
 \\[ c = \\pm\\sqrt{a^2 + b^2} \\]
 ''',
+    mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
+    expectedTexts: ['OpenAI block latex:'],
+  ),
 };
 
 void main() {
   group('Latex Rules', () {
-    snapshots.forEach((key, value) {
+    setUpAll(() async {
+      if (!kGoldensEnabled) {
+        // ignore: avoid_print
+        print(
+          'Golden tests: skipped (pass --dart-define=GOLDENS=true to compare against reference images).',
+        );
+      } else {
+        final GoldenFileComparator current = goldenFileComparator;
+        if (current is LocalFileComparator) {
+          goldenFileComparator = GoldenDiffComparator(
+            Uri.parse('${current.basedir}test.dart'),
+            tolerance: 0.05,
+          );
+        }
+      }
+      await _loadPackageFonts();
+    });
+
+    _snapshotCases.forEach((key, testCase) {
       testWidgets(key, (tester) async {
-        await loadAppFonts();
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
               backgroundColor: Colors.white,
               body: MarkdownBody(
                 selectable: true,
-                data: value,
-                builders: {
-                  'latex': LatexElementBuilder(),
-                },
+                data: testCase.markdown,
+                builders: {'latex': LatexElementBuilder()},
                 extensionSet: md.ExtensionSet(
                   [LatexBlockSyntax()],
                   [LatexInlineSyntax()],
                 ),
                 styleSheet: MarkdownStyleSheet(
                   p: const TextStyle(
-                      fontSize: 16, fontFamily: 'FlutterTest', height: 1),
+                    fontSize: 16,
+                    fontFamily: 'FlutterTest',
+                    height: 1,
+                  ),
                 ),
               ),
             ),
           ),
         );
 
-        final testUrl = (goldenFileComparator as LocalFileComparator).basedir;
-        goldenFileComparator = GoldenDiffComparator(
-          // flutter_test's LocalFileComparator expects the test's URI to be passed
-          // as an argument, but it only uses it to parse the baseDir in order to
-          // obtain the directory where the golden tests will be placed.
-          // As such, we use the default `testUrl`, which is only the `baseDir` and
-          // append a generically named `test.dart` so that the `baseDir` is
-          // properly extracted.
-          Uri.parse('$testUrl/test.dart'),
-          tolerance: 0.05,
-        );
+        expect(find.byType(MarkdownBody), findsOneWidget);
 
-        await expectLater(
-          find.byType(MarkdownBody),
-          matchesGoldenFile('goldens/$key.png'),
+        final List<Math> mathWidgets = tester
+            .widgetList<Math>(find.byType(Math))
+            .toList();
+        expect(
+          mathWidgets.map((Math m) => m.mathStyle).toList(),
+          equals(testCase.mathStyles),
         );
+        for (final Math mathWidget in mathWidgets) {
+          if (testCase.expectParseError) {
+            expect(mathWidget.parseError, isNotNull);
+          } else {
+            expect(mathWidget.parseError, isNull);
+          }
+        }
+        if (!testCase.expectParseError) {
+          expect(
+            mathWidgets.map((Math m) => m.ast!.greenRoot.encodeTeX()).toList(),
+            equals(
+              testCase.expectedTex
+                  .map((String tex) => Math.tex(tex).ast!.greenRoot.encodeTeX())
+                  .toList(),
+            ),
+          );
+        }
+
+        final List<String> renderedTexts = tester
+            .widgetList<SelectableText>(find.byType(SelectableText))
+            .map(
+              (SelectableText w) => w.textSpan?.toPlainText() ?? w.data ?? '',
+            )
+            .toList();
+        expect(renderedTexts, equals(testCase.expectedTexts));
+
+        if (kGoldensEnabled) {
+          await expectLater(
+            find.byType(MarkdownBody),
+            matchesGoldenFile('goldens/$key.png'),
+          );
+        }
       });
     });
   });

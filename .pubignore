@@ -1,0 +1,98 @@
+# NOTE: when this file exists, `pub publish` uses it INSTEAD of `.gitignore`,
+# so anything `.gitignore` excludes is not excluded from the archive. Keep the
+# two lists in sync.
+
+# Local build, lockfile and test output (root-anchored so subpackage paths
+# like `lib/build/` are never accidentally excluded)
+/pubspec.lock
+/build/
+/coverage/
+.dart_tool/
+/test/failures/
+
+# Local-only planning, agent and IDE files. Not part of the package.
+# Root-anchored with a leading slash (even where `.gitignore` is unanchored):
+# `docs/` on its own would also drop `lib/docs/`, `test/docs/` and
+# `example/docs/`, and `build/` would drop `lib/build/`. Only root-level copies
+# are local-only.
+/AGENTS.md
+/CLAUDE.md
+/GLOSSARY.md
+/docs/
+/.act/
+/.mimocode/
+/worktrees/
+/handover.md
+.idea/
+.fvm/
+.vscode/
+migrate_working_dir/
+
+*.iml
+*.ipr
+*.iws
+*.log
+*.class
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/doc/api/
+lib/generated_plugin_registrant.dart
+
+# Example build artifacts
+example/build/
+example/.dart_tool/
+example/.idea/
+example/.vscode/
+example/.build/
+example/.swiftpm/
+example/coverage/
+example/app.*.symbols
+example/app.*.map.json
+example/migrate_working_dir/
+
+# Android
+example/android/.gradle/
+example/android/captures/
+example/android/gradlew
+example/android/gradlew.bat
+example/android/local.properties
+example/android/key.properties
+example/android/**/GeneratedPluginRegistrant.java
+example/android/app/debug/
+example/android/app/profile/
+example/android/app/release/
+
+# iOS
+example/ios/**/DerivedData/
+example/ios/**/Pods/
+example/ios/**/.symlinks/
+example/ios/**/xcuserdata/
+example/ios/**/.generated/
+example/ios/Flutter/App.framework
+example/ios/Flutter/Flutter.framework
+example/ios/Flutter/Flutter.podspec
+example/ios/Flutter/Generated.xcconfig
+example/ios/Flutter/app.flx
+example/ios/Flutter/app.zip
+example/ios/Flutter/flutter_assets/
+example/ios/Flutter/flutter_export_environment.sh
+example/ios/Flutter/.last_build_id
+example/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+example/macos/**/DerivedData/
+example/macos/**/Pods/
+example/macos/**/.symlinks/
+example/macos/**/xcuserdata/
+example/macos/Flutter/ephemeral/
+example/macos/Flutter/GeneratedPluginRegistrant.swift

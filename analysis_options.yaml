@@ -1,3 +1,13 @@
+analyzer:
+  errors:
+    # Allow deprecated members: test/ and example/ still import
+    # package:flutter/material.dart` while the floor is Flutter 3.35.0
+    # (package:material_ui requires Flutter >=3.47.0 / Dart ^3.13.0).
+    # Remove/revisit in 1.2.0 when the Compatibility Floor rises.
+    deprecated_member_use: ignore
+    deprecated_member_use_from_same_package: ignore
+  exclude:
+    - build/**
 include: package:flutter_lints/flutter.yaml
 
 # Additional information about this file can be found at
