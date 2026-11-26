@@ -112,12 +112,13 @@ jobs:
           flutter-version: ${{ env.FLUTTER_LATEST }}
           channel: stable
           cache: true
-      - name: Select Xcode 27.2 if present and show version
+      - name: Select Xcode 27.2 if present and verify Xcode 27.x
         run: |
           if [ -d "/Applications/Xcode_27.2.app" ]; then
             sudo xcode-select -s /Applications/Xcode_27.2.app/Contents/Developer
           fi
           xcodebuild -version
+          xcodebuild -version | grep -q '^Xcode 27\.'
       - name: Build iOS simulator app
         working-directory: example
         run: |

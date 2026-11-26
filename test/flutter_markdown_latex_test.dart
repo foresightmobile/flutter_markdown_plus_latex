@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter_math_fork/tex.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as md;
 
@@ -49,12 +50,14 @@ class _LatexSnapshotCase {
   const _LatexSnapshotCase({
     required this.markdown,
     required this.mathStyles,
+    this.expectedTex = const <String>[],
     this.expectParseError = false,
     this.expectedTexts = const <String>[],
   });
 
   final String markdown;
   final List<MathStyle> mathStyles;
+  final List<String> expectedTex;
   final bool expectParseError;
   final List<String> expectedTexts;
 }
@@ -63,6 +66,7 @@ const Map<String, _LatexSnapshotCase> _snapshotCases = {
   'readme example': _LatexSnapshotCase(
     markdown: 'latex: \$c = \\pm\\sqrt{a^2 + b^2}\$',
     mathStyles: [MathStyle.text],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
     expectedTexts: ['latex: '],
   ),
   'inline latex': _LatexSnapshotCase(
@@ -70,6 +74,7 @@ const Map<String, _LatexSnapshotCase> _snapshotCases = {
 This is inline latex: \$c = \\pm\\sqrt{a^2 + b^2}\$
 ''',
     mathStyles: [MathStyle.text],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
     expectedTexts: ['This is inline latex: '],
   ),
   'block latex': _LatexSnapshotCase(
@@ -81,6 +86,7 @@ c = \\pm\\sqrt{a^2 + b^2}
 \$\$
 ''',
     mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
     expectedTexts: ['This is block level latex:'],
   ),
   'inline latex more \$': _LatexSnapshotCase(
@@ -88,6 +94,7 @@ c = \\pm\\sqrt{a^2 + b^2}
 This is inline latex with displayMode: \$\$c = \\pm\\sqrt{a^2 + b^2}\$\$
 ''',
     mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
     expectedTexts: ['This is inline latex with displayMode: '],
   ),
   'inline latex 3 \$': _LatexSnapshotCase(
@@ -125,9 +132,12 @@ This is not inline latex: \$\$\$c = \\pm\\sqrt{a^2 + b^2}\$\$\$
     mathStyles: [],
     expectedTexts: ['\$300 \$400 not latex'],
   ),
+  // Existing parser behaviour locked in by this test: the trailing `$ 400$`
+  // substring is matched as inline math while `'not latex 300'` stays plain text.
   'not latex at end': _LatexSnapshotCase(
     markdown: 'not latex 300\$ 400\$',
     mathStyles: [MathStyle.text],
+    expectedTex: [' 400'],
     expectedTexts: ['not latex 300'],
   ),
   'block latex with \$ inside': _LatexSnapshotCase(
@@ -139,35 +149,47 @@ a\$}
 \$\$
 ''',
     mathStyles: [MathStyle.display],
+    expectedTex: [
+      '''
+\\colorbox{aqua}{\$
+\\frac{b}{2}\\sqrt{a^2-\\frac{b^2}{4}}
+a\$}''',
+    ],
   ),
   'inline latex with \$ inside': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$a\\raisebox{0.25em}{\$b\$}c\$',
     mathStyles: [MathStyle.text],
+    expectedTex: [r'a\raisebox{0.25em}{$b$}c'],
     expectedTexts: ['this is inline latex: '],
   ),
   'inline latex with a question mark after': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$x\$?',
     mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
     expectedTexts: ['this is inline latex: ', '?'],
   ),
   'inline latex with an exclamation mark after': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$x\$!',
     mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
     expectedTexts: ['this is inline latex: ', '!'],
   ),
   'inline latex with a period after': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$x\$.',
     mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
     expectedTexts: ['this is inline latex: ', '.'],
   ),
   'inline latex with a comma after': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$x\$,',
     mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
     expectedTexts: ['this is inline latex: ', ','],
   ),
   'inline latex with a colon after': _LatexSnapshotCase(
     markdown: 'this is inline latex: \$x\$:',
     mathStyles: [MathStyle.text],
+    expectedTex: ['x'],
     expectedTexts: ['this is inline latex: ', ':'],
   ),
   'inline latex \$\$...\$': _LatexSnapshotCase(
@@ -191,6 +213,7 @@ a\$}
   'slash \$': _LatexSnapshotCase(
     markdown: 'must include space between latex and end delimiter: \$ \\\$ \$',
     mathStyles: [MathStyle.text],
+    expectedTex: [r' \$ '],
     expectedTexts: ['must include space between latex and end delimiter: '],
   ),
   'block slash \$': _LatexSnapshotCase(
@@ -202,6 +225,7 @@ this is block latex:
 \$\$
 ''',
     mathStyles: [MathStyle.display],
+    expectedTex: [r'\$\$'],
     expectedTexts: ['this is block latex:'],
   ),
   'inline latex with newline': _LatexSnapshotCase(
@@ -218,6 +242,7 @@ c = \\pm\\sqrt{a^2 + b^2}
 this is latex: **pi:** \$\\pi\$ **theta:** \$\\theta\$
 ''',
     mathStyles: [MathStyle.text, MathStyle.text],
+    expectedTex: [r'\pi', r'\theta'],
     expectedTexts: ['this is latex: pi: ', ' theta: '],
   ),
   'multiple inline latex \$\$': _LatexSnapshotCase(
@@ -225,6 +250,7 @@ this is latex: **pi:** \$\\pi\$ **theta:** \$\\theta\$
 this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 ''',
     mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
     expectedTexts: ['this is latex: pi: ', ' theta: '],
   ),
   'multiple block latex \$': _LatexSnapshotCase(
@@ -242,6 +268,7 @@ this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 \$
 ''',
     mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
     expectedTexts: ['pi:', 'theta:'],
   ),
   'multiple block latex \$\$': _LatexSnapshotCase(
@@ -259,6 +286,7 @@ this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 \$\$
 ''',
     mathStyles: [MathStyle.display, MathStyle.display],
+    expectedTex: [r'\pi', r'\theta'],
     expectedTexts: ['pi:', 'theta:'],
   ),
   'OpenAI inline latex': _LatexSnapshotCase(
@@ -266,6 +294,7 @@ this is latex: **pi:** \$\$\\pi\$\$ **theta:** \$\$\\theta\$\$
 OpenAI inline latex \\( f(x) = \\sum_{i=0}^{n} \\frac{a_i}{1+x} \\)
 ''',
     mathStyles: [MathStyle.text],
+    expectedTex: [r' f(x) = \sum_{i=0}^{n} \frac{a_i}{1+x} '],
     expectedTexts: ['OpenAI inline latex '],
   ),
   'OpenAI block latex': _LatexSnapshotCase(
@@ -275,6 +304,7 @@ OpenAI block latex:
 \\[ c = \\pm\\sqrt{a^2 + b^2} \\]
 ''',
     mathStyles: [MathStyle.display],
+    expectedTex: [r'c = \pm\sqrt{a^2 + b^2}'],
     expectedTexts: ['OpenAI block latex:'],
   ),
 };
@@ -340,6 +370,16 @@ void main() {
           } else {
             expect(mathWidget.parseError, isNull);
           }
+        }
+        if (!testCase.expectParseError) {
+          expect(
+            mathWidgets.map((Math m) => m.ast!.greenRoot.encodeTeX()).toList(),
+            equals(
+              testCase.expectedTex
+                  .map((String tex) => Math.tex(tex).ast!.greenRoot.encodeTeX())
+                  .toList(),
+            ),
+          );
         }
 
         final List<String> renderedTexts = tester
