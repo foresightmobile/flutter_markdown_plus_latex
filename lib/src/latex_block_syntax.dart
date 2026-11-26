@@ -3,9 +3,9 @@ import 'package:markdown/markdown.dart';
 class LatexBlockSyntax extends BlockSyntax {
   @override
   RegExp get pattern => RegExp(
-        r'^(?:(\${1,2})(?:\n|$))|(?:(?:\\\[(.+)\\\])(?:\n|$))',
-        multiLine: true,
-      );
+    r'^(?:(\${1,2})(?:\n|$))|(?:(?:\\\[(.+)\\\])(?:\n|$))',
+    multiLine: true,
+  );
 
   LatexBlockSyntax() : super();
 

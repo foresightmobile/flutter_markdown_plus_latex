@@ -30,7 +30,8 @@ String generateRegexRules(List<Map<String, dynamic>> delimiters) {
 
     // Inline pattern
     inlinePatterns.add(
-        '$escapedLeft((?:\\\\.|[^\\\\\\n])*?(?:\\\\.|[^\\\\\\n]|(?!$escapedRight)))$escapedRight');
+      '$escapedLeft((?:\\\\.|[^\\\\\\n])*?(?:\\\\.|[^\\\\\\n]|(?!$escapedRight)))$escapedRight',
+    );
     // Block pattern
     blockPatterns.add('$escapedLeft\\n((?:\\\\[^]|[^\\\\])+?)\\n$escapedRight');
   }
@@ -59,8 +60,10 @@ class LatexInlineSyntax extends InlineSyntax {
       }
     }
 
-    final equation =
-        raw.substring(delimiterLength, raw.length - delimiterLength);
+    final equation = raw.substring(
+      delimiterLength,
+      raw.length - delimiterLength,
+    );
 
     final element = Element.text('latex', equation);
     element.attributes['MathStyle'] = mathStyle;

@@ -61,24 +61,25 @@ In particular, when \(a=0\), this expansion is called the Maclaurin series.
         title: const Text('Latex Markdown Example'),
       ),
       body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Markdown(
-            selectable: true,
-            data: _text,
-            builders: {
-              'latex': LatexElementBuilder(
-                textStyle: const TextStyle(
-                  // color: Colors.blue,
-                  fontWeight: FontWeight.w100,
-                ),
-                textScaleFactor: 1.2,
+        padding: const EdgeInsets.all(16.0),
+        child: Markdown(
+          selectable: true,
+          data: _text,
+          builders: {
+            'latex': LatexElementBuilder(
+              textStyle: const TextStyle(
+                // color: Colors.blue,
+                fontWeight: FontWeight.w100,
               ),
-            },
-            extensionSet: md.ExtensionSet(
-              [LatexBlockSyntax()],
-              [LatexInlineSyntax()],
+              textScaleFactor: 1.2,
             ),
-          )), // This trailing comma makes auto-formatting nicer for build methods.
+          },
+          extensionSet: md.ExtensionSet(
+            [LatexBlockSyntax()],
+            [LatexInlineSyntax()],
+          ),
+        ),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
