@@ -5,17 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// [LocalFileComparator] with a configurable pixel-difference tolerance.
 ///
-/// NOTE: The existing golden PNGs in `test/goldens/` capture an 800x600 surface
-/// where rendered text and math cover <= ~1% of pixels, so the inherited 0.05
-/// (5%) tolerance cannot catch content regressions on its own (non-golden widget
-/// assertions in `flutter_markdown_latex_test.dart` enforce correctness today).
-/// A follow-up PR after #18 merges will switch to tight-cropped
-/// `RepaintBoundary` goldens regenerated via CI `workflow_dispatch` with a
-/// tighter tolerance.
+/// The golden PNGs in `test/goldens/` capture a keyed tight-cropped
+/// `RepaintBoundary` around `MarkdownBody` (padded inside a `maxWidth: 480`
+/// container on a white background). The sensitivity floor is set by
+/// invisible-math regressions (`0.16%` on `slash $`), not whole-image swaps
+/// (`4.83%` lowest non-identical same-size swap between `inline latex 3 $` and
+/// `inline latex $$...$` / `$...$$`) or blank-white replacements (`7.8%`–`34.1%`).
+/// With `tolerance: 0.001` (0.1%), all measured invisible-math regressions fail
+/// while retaining minor headroom.
 class GoldenDiffComparator extends LocalFileComparator {
   final double tolerance;
 
-  GoldenDiffComparator(super.testFile, {this.tolerance = 0.005});
+  GoldenDiffComparator(super.testFile, {this.tolerance = 0.001});
 
   @override
   Future<bool> compare(Uint8List imageBytes, Uri golden) async {
